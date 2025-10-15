@@ -1,0 +1,127 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --primary: #e50914;
+  --bg: #141414;
+  --text: #fff;
+  --muted: #a3a3a3;
+  --panel: #181818;
+}
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* Navbar */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,0));
+}
+.navbar .container {
+  max-width: 1400px; margin: 0 auto; padding: 16px 24px;
+  display: flex; gap: 16px; align-items: center; justify-content: space-between;
+}
+.logo { color: var(--primary); font-weight: 700; font-size: 1.6rem; }
+.nav-menu { display: flex; gap: 12px; align-items: center; }
+#search {
+  padding: 10px 12px; border-radius: 6px; border: 1px solid #333;
+  background: rgba(0,0,0,.6); color: var(--text); width: 260px;
+}
+.btn-primary {
+  padding: 10px 14px; border: none; border-radius: 6px; background: var(--primary);
+  color: #fff; font-weight: 700; cursor: pointer;
+}
+.btn-ghost {
+  padding: 10px 14px; border: 1px solid #333; border-radius: 6px; background: rgba(0,0,0,.4);
+  color: #fff; font-weight: 600; cursor: pointer;
+}
+
+/* Hero */
+.hero-section {
+  margin-top: 70px; height: 380px;
+  background: linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.9)),
+              url('posters/placeholder.jpg');
+  background-size: cover; background-position: center;
+  display: flex; align-items: end; padding: 36px 24px;
+}
+.hero-content { max-width: 700px; }
+#featured-play[disabled] { opacity: .6; cursor: not-allowed; }
+
+/* Help */
+.help { background: var(--panel); padding: 20px 24px; border-radius: 10px; margin: 20px 24px; }
+.help.hidden { display: none; }
+.help h3 { margin-top: 14px; }
+.help .code { margin-top: 8px; background: #0f0f0f; padding: 12px; border-radius: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; white-space: pre; color: #ddd; }
+
+/* Grid */
+.content-section { padding: 28px 24px; }
+.shows-grid {
+  margin-top: 16px;
+  display: grid; gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.show-card {
+  background: var(--panel); border-radius: 10px; overflow: hidden; cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+  position: relative;
+}
+.show-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+.show-card img { width: 100%; height: 300px; object-fit: cover; display: block; }
+.show-info { padding: 12px; }
+.show-info h3 { font-size: 1.05rem; margin-bottom: 6px; }
+.show-meta { font-size: .9rem; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Continue chip */
+.continue-chip {
+  position: absolute; left: 8px; top: 8px;
+  background: rgba(0,0,0,.7);
+  color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 12px;
+}
+
+/* Modal */
+.modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 1000; }
+.modal.hidden { display: none; }
+.modal:not(.hidden) { display: flex; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.95); }
+.modal-content {
+  position: relative; z-index: 1;
+  width: min(1200px, 92vw); max-height: 90vh;
+  background: var(--panel); border-radius: 10px; overflow: hidden;
+  display: grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr;
+}
+.modal-header {
+  grid-column: 1/-1; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0,0,0,.45);
+}
+.close-btn { background: none; color: #fff; border: none; font-size: 28px; cursor: pointer; }
+.player-container { background: #000; padding: 12px; }
+#video-player { width: 100%; border-radius: 6px; }
+.player-sidebar { padding: 16px; overflow-y: auto; }
+.season-selector { margin-bottom: 12px; }
+.season-selector label { display: block; margin-bottom: 6px; font-weight: 700; }
+.season-selector select {
+  width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444;
+  background: #2a2a2a; color: #fff;
+}
+.season-selector select option { background: #2a2a2a; color: #fff; }
+
+/* Playlist */
+.playlist { display: flex; flex-direction: column; gap: 10px; }
+.episode-item {
+  display: flex; gap: 12px; align-items: center; padding: 10px 12px;
+  background: rgba(255,255,255,.06); border-radius: 8px; cursor: pointer;
+}
+.episode-item:hover { background: rgba(255,255,255,.12); }
+.episode-item.active { background: var(--primary); }
+.episode-number { font-weight: 700; min-width: 38px; }
+.episode-title { flex: 1; }
+.episode-meta { color: var(--muted); font-size: .85rem; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .modal-content { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .player-sidebar { max-height: 280px; }
+}

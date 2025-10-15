@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My TV & Movie Library</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">📺 My Library</div>
+      <nav class="nav-menu">
+        <input id="search" type="text" placeholder="Search shows & movies..." />
+        <button id="help-btn" class="btn-ghost" title="Open Help">❓ Help</button>
+        <button id="pick-folders" class="btn-primary">Select Library Folders</button>
+        <input id="picker" type="file" webkitdirectory multiple style="display:none;" />
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section id="featured" class="hero-section">
+    <div class="hero-content">
+      <h1 id="featured-title">Welcome</h1>
+      <p id="featured-description">Pick your folders to auto-load Movies and TV Series. Your library will be saved for next time.</p>
+      <button id="featured-play" class="btn-primary" disabled>▶ Play Now</button>
+    </div>
+  </section>
+
+  <!-- Help -->
+  <section id="help" class="content-section help hidden">
+    <h2>How to use</h2>
+    <ol>
+      <li>Organize your files using the folder format below.</li>
+      <li>Click “Select Library Folders”, then choose your “Movie” and “TV Series” folders. You can reselect anytime to refresh.</li>
+      <li>Your library is saved automatically and will reload next time you open this page.</li>
+      <li>Optional: Add poster images in the “posters” folder, named after the movie/show (lowercase, spaces → dashes).</li>
+    </ol>
+
+    <h3>Supported video types</h3>
+    <p>mp4, mkv, webm, avi, mov</p>
+
+    <h3>Top-level folders to select</h3>
+    <ul>
+      <li>Movie</li>
+      <li>TV Series</li>
+    </ul>
+
+    <h3>Movies format</h3>
+    <p>One folder per movie using “Title (Year)”, with the main video inside having the same name.</p>
+    <div class="code">
+Movie/
+  Inception (2010)/Inception (2010).mp4
+  Interstellar (2014)/Interstellar (2014).mkv
+  The Matrix (1999)/The Matrix (1999).mp4
+    </div>
+
+    <h3>TV Series format</h3>
+    <p>One folder per show, seasons named “Season 01”, “Season 02”, … and episode files containing SxxExx.</p>
+    <div class="code">
+TV Series/
+  Friends/
+    Season 01/
+      Friends.S01E01.mkv
+      Friends.S01E02.mp4
+    Season 02/
+      Friends.S02E01.mp4
+
+  How To Get Away With Murder/
+    Season 01/
+      How.to.Get.Away.With.Murder.S01E01.mp4
+
+  The Big Bang Theory/
+    Season 07/
+      The.Big.Bang.Theory.S07E03.mkv
+    </div>
+
+    <h3>Posters (optional)</h3>
+    <p>Place images in odede>/posters</code> named using lowercase and dashes. A fallback odede>posters/placeholder.jpg</code> will be used if the named poster is missing.</p>
+    <div class="code">
+posters/
+  placeholder.jpg
+  friends.jpg
+  how-to-get-away-with-murder.jpg
+  the-big-bang-theory.jpg
+  inception-2010.jpg
+  interstellar-2014.jpg
+    </div>
+
+    <h3>Tips</h3>
+    <ul>
+      <li>Use two digits for season and episode numbers (S01E03).</li>
+      <li>If you add/remove files later, click “Select Library Folders” again to refresh the saved library.</li>
+      <li>The site remembers your library and last watched position in your browser (localStorage).</li>
+    </ul>
+
+    <h3>Troubleshooting</h3>
+    <ul>
+      <li>Video not found: Check the filename and ensure it has a supported extension.</li>
+      <li>Episode order wrong: Make sure filenames include SxxExx (e.g., S01E03).</li>
+      <li>Poster not showing: Fallback placeholder is automatic; add your own image in odede>/posters</code> to customize.</li>
+    </ul>
+  </section>
+
+  <!-- TV Shows -->
+  <main class="content-section">
+    <h2>TV Series</h2>
+    <div id="shows-container" class="shows-grid"></div>
+
+    <h2 style="margin-top:28px;">Movies</h2>
+    <div id="movies-container" class="shows-grid"></div>
+  </main>
+
+  <!-- Player Modal -->
+  <div id="player-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" role="dialog" aria-label="Video player">
+      <div class="modal-header">
+        <h2 id="now-playing-title">Now Playing</h2>
+        <button class="close-btn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="player-container">
+        <video id="video-player" controls autoplay>
+          <source src="" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+
+      <aside class="player-sidebar">
+        <div class="season-selector">
+          <label for="season-select">Season:</label>
+          <select id="season-select"></select>
+        </div>
+        <div id="episode-list" class="playlist"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/media_library.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
