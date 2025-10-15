@@ -80,7 +80,15 @@ movie-website/
 │  ├─ media_library.js
 │  └─ app.js
 └─ posters/
-   └─ placeholder.jpg      (required for safe fallback)
+|  └─ placeholder.jpg      (required for safe fallback)
+└─ Movie/
+|  └─ MovieName (year)
+|     └─ mp4, mkv, etc....
+└─ TvSeries/
+|  └─ tvName (year)
+|     └─ Season 7
+|        └─ The.Big.Bang.Theory.S07E03.mkv
+
 ```
 
 3) Open index.html in a modern browser (Chrome, Edge, Firefox). No server required.
