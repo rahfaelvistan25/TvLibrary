@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Class QR Attendance</title>
+
+  <!-- QR Scanner library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- SheetJS for Excel/CSV export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .top-bar label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-right: 0.25rem;
+    }
+    .top-bar select,
+    .top-bar input {
+      padding: 0.25rem 0.4rem;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .panel {
+      background: #ffffff;
+      border-radius: 6px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      flex: 1 1 340px;
+      min-width: 340px;
+    }
+    #reader {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .status {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    .status.success {
+      background: #e6ffed;
+      color: #046c4e;
+    }
+    .status.error {
+      background: #ffe6e6;
+      color: #a61b1b;
+    }
+    .status.info {
+      background: #e6f0ff;
+      color: #1b3fa6;
+    }
+    .toast {
+      position: fixed;
+      top: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.6rem 1rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      color: #fff;
+      display: none;
+      z-index: 1000;
+    }
+    .toast.success {
+      background: #16a34a;
+    }
+    .toast.error {
+      background: #dc2626;
+    }
+    .toast.info {
+      background: #2563eb;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+    .controls {
+      margin: 0.5rem 0 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    button, select {
+      padding: 0.4rem 0.7rem;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #ffffff;
+    }
+    button.primary {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    button.danger {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #b91c1c;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .small {
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .manual-input {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .manual-input input {
+      flex: 1 1 100px;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .summary-box {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+    .fullscreen-toggle {
+      margin-left: auto;
+    }
+    .schedule-label {
+      font-size: 0.8rem;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <h1>Class QR Attendance</h1>
+  <p class="small">
+    QR format: <strong>first_name,last_name,student_id</strong> (comma-separated, no extra commas).
+  </p>
+
+  <div class="top-bar">
+    <div>
+      <label for="strand-select">Strand:</label>
+      <select id="strand-select">
+        <option value="GAS11_ADT11">GAS11 + ADT11</option>
+        <option value="HUMS11">HUMS11</option>
+        <option value="ICT11">ICT11</option>
+        <option value="STEM11">STEM11</option>
+        <option value="HE11">HE11</option>
+        <option value="ABM11">ABM11</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="date-select">Date:</label>
+      <input type="date" id="date-select" />
+    </div>
+
+    <span id="schedule-info" class="schedule-label"></span>
+
+    <button id="fullscreen-btn" class="fullscreen-toggle">Toggle Fullscreen</button>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Scanner</h2>
+      <div class="controls">
+        <button id="start-btn" class="primary">Start Scanner</button>
+        <button id="stop-btn">Stop Scanner</button>
+        <select id="camera-select"></select>
+      </div>
+      <div id="reader"></div>
+      <div id="status" class="status info">Scanner idle. Click "Start Scanner".</div>
+
+      <h3>Manual input (no QR)</h3>
+      <div class="manual-input">
+        <input id="manual-first" type="text" placeholder="First name" />
+        <input id="manual-last" type="text" placeholder="Last name" />
+        <input id="manual-id" type="text" placeholder="Student ID" />
+        <button id="manual-add-btn" class="primary">Add</button>
+      </div>
+      <p class="small">
+        Manual entries follow the same rules (duplicate check, present/late, storage).
+      </p>
+
+      <h3>Session info</h3>
+      <div class="small">
+        Total scanned (unique) for this strand & date: <span id="total-count">0</span><br />
+        Present: <span id="present-count">0</span> |
+        Late: <span id="late-count">0</span><br />
+        Last scan: <span id="last-scan">None</span><br />
+        First scan time (today): <span id="first-scan-label">Not set</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Attendance List</h2>
+      <div class="controls">
+        <button id="export-xlsx-btn" class="primary">Export to Excel</button>
+        <button id="export-csv-btn" class="primary">Export to CSV</button>
+        <button id="export-json-btn">Download JSON</button>
+        <button id="clear-btn" class="danger">Clear Attendance</button>
+      </div>
+      <table id="attendance-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student ID</th>
+            <th>First name</th>
+            <th>Last name</th>
+            <th>Status</th>
+            <th>Scan time</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="summary-box">
+        Current filter: <span id="summary-strand"></span>,
+        <span id="summary-date"></span><br />
+        Class time window: <span id="summary-time"></span><br />
+        Unique students: <span id="summary-unique">0</span>,
+        Present: <span id="summary-present">0</span>,
+        Late: <span id="summary-late">0</span>
+      </div>
+    </div>
+  </div>
+
+  <audio id="sound-success" src="success.mp3" preload="auto"></audio>
+  <audio id="sound-duplicate" src="duplicate.mp3" preload="auto"></audio>
+  <audio id="sound-error" src="error.mp3" preload="auto"></audio>
+
+  <script>
+    const QR_SEPARATOR = ",";
+    const STORAGE_KEY = "qr_attendance_records_v4";
+    const FIRST_SCAN_KEY = "qr_attendance_first_scan_times_v1";
+
+    const STRAND_SCHEDULE = {
+      "GAS11_ADT11": {
+        days: [2, 4],
+        start: "08:30",
+        end: "10:30",
+        label: "Tue & Thu 8:30–10:30 AM"
+      },
+      "HUMS11": {
+        days: [2, 4],
+        start: "10:30",
+        end: "12:30",
+        label: "Tue & Thu 10:30–12:30 PM"
+      },
+      "ICT11": {
+        days: [2, 4],
+        start: "13:00",
+        end: "15:00",
+        label: "Tue & Thu 1:00–3:00 PM"
+      },
+      "STEM11": {
+        days: [3, 4, 5],
+        start: "08:30",
+        end: "10:30",
+        label: "Wed–Fri 8:30–10:30 AM"
+      },
+      "HE11": {
+        days: [3, 4, 5],
+        start: "10:30",
+        end: "12:30",
+        label: "Wed–Fri 10:30–12:30 PM"
+      },
+      "ABM11": {
+        days: [3, 4, 5],
+        start: "13:00",
+        end: "15:00",
+        label: "Wed–Fri 1:00–3:00 PM"
+      }
+    };
+
+    const GRACE_MINUTES = 30; // 30‑minute window from first scan
+
+    let html5QrCode = null;
+    let currentCameraId = null;
+
+    const startBtn = document.getElementById("start-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    const cameraSelect = document.getElementById("camera-select");
+    const statusDiv = document.getElementById("status");
+    const totalCountSpan = document.getElementById("total-count");
+    const presentCountSpan = document.getElementById("present-count");
+    const lateCountSpan = document.getElementById("late-count");
+    const lastScanSpan = document.getElementById("last-scan");
+    const firstScanLabel = document.getElementById("first-scan-label");
+    const attendanceTableBody = document.querySelector("#attendance-table tbody");
+
+    const exportXlsxBtn = document.getElementById("export-xlsx-btn");
+    const exportCsvBtn = document.getElementById("export-csv-btn");
+    const exportJsonBtn = document.getElementById("export-json-btn");
+    const clearBtn = document.getElementById("clear-btn");
+
+    const soundSuccess = document.getElementById("sound-success");
+    const soundDuplicate = document.getElementById("sound-duplicate");
+    const soundError = document.getElementById("sound-error");
+
+    const strandSelect = document.getElementById("strand-select");
+    const dateSelect = document.getElementById("date-select");
+    const scheduleInfo = document.getElementById("schedule-info");
+
+    const summaryStrand = document.getElementById("summary-strand");
+    const summaryDate = document.getElementById("summary-date");
+    const summaryTime = document.getElementById("summary-time");
+    const summaryUnique = document.getElementById("summary-unique");
+    const summaryPresent = document.getElementById("summary-present");
+    const summaryLate = document.getElementById("summary-late");
+
+    const manualFirstInput = document.getElementById("manual-first");
+    const manualLastInput = document.getElementById("manual-last");
+    const manualIdInput = document.getElementById("manual-id");
+    const manualAddBtn = document.getElementById("manual-add-btn");
+
+    const toast = document.getElementById("toast");
+    const fullscreenBtn = document.getElementById("fullscreen-btn");
+
+    function setStatus(message, type = "info") {
+      statusDiv.textContent = message;
+      statusDiv.className = "status " + type;
+    }
+
+    function showToast(message, type = "info", duration = 1500) {
+      toast.textContent = message;
+      toast.className = "toast " + type;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, duration);
+    }
+
+    function formatDate(date) {
+      return date.toISOString().slice(0, 10);
+    }
+
+    function formatTime(date) {
+      return date.toLocaleString();
+    }
+
+    async function playSound(audioElement) {
+      if (!audioElement) return;
+      try {
+        audioElement.currentTime = 0;
+        await audioElement.play();
+      } catch (e) {}
+    }
+
+    function parseQrContent(text) {
+      const parts = text.split(QR_SEPARATOR).map(s => s.trim());
+      if (parts.length !== 3) {
+        throw new Error("Invalid QR format. Expected: first_name,last_name,student_id");
+      }
+      const [firstName, lastName, studentId] = parts;
+      if (!firstName || !lastName || !studentId) {
+        throw new Error("Missing data in QR code.");
+      }
+      return { firstName, lastName, studentId };
+    }
+
+    function getCurrentFilter() {
+      return {
+        strand: strandSelect.value,
+        date: dateSelect.value
+      };
+    }
+
+    function getScheduleFor(strand, dateStr) {
+      const schedule = STRAND_SCHEDULE[strand];
+      if (!schedule || !dateStr) return null;
+      const d = new Date(dateStr + "T00:00:00");
+      if (isNaN(d.getTime())) return null;
+      const day = d.getDay();
+      if (!schedule.days.includes(day)) return null;
+      return schedule;
+    }
+
+    function loadRecords() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords(records) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    function loadFirstScanTimes() {
+      const raw = localStorage.getItem(FIRST_SCAN_KEY);
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveFirstScanTimes(map) {
+      localStorage.setItem(FIRST_SCAN_KEY, JSON.stringify(map));
+    }
+
+    function getFirstScanKey(strand, date) {
+      return strand + "|" + date;
+    }
+
+    function getFirstScanTime(strand, date) {
+      const map = loadFirstScanTimes();
+      const key = getFirstScanKey(strand, date);
+      const value = map[key];
+      return typeof value === "number" ? value : null;
+    }
+
+    function setFirstScanTimeIfNeeded(strand, date, timeMs) {
+      const map = loadFirstScanTimes();
+      const key = getFirstScanKey(strand, date);
+      if (typeof map[key] !== "number") {
+        map[key] = timeMs;
+        saveFirstScanTimes(map);
+      }
+      return map[key];
+    }
+
+    function computeStatus(scanDate) {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) return "Late";
+
+      const nowMs = scanDate.getTime();
+      let firstMs = getFirstScanTime(strand, date);
+      if (firstMs === null) {
+        firstMs = setFirstScanTimeIfNeeded(strand, date, nowMs);
+      }
+
+      const diffMinutes = (nowMs - firstMs) / (60 * 1000);
+      if (diffMinutes <= GRACE_MINUTES) {
+        return "Present";
+      }
+      return "Late";
+    }
+
+    function getFilteredRecords() {
+      const all = loadRecords();
+      const { strand, date } = getCurrentFilter();
+      return all.filter(r => r.strand === strand && r.date === date);
+    }
+
+    function updateScheduleLabel() {
+      const { strand, date } = getCurrentFilter();
+      const schedule = getScheduleFor(strand, date);
+      if (!date) {
+        scheduleInfo.textContent = "";
+        return;
+      }
+      if (!schedule) {
+        scheduleInfo.textContent = "No scheduled PR1 for this strand on this date.";
+        scheduleInfo.style.color = "#b91c1c";
+      } else {
+        scheduleInfo.textContent = schedule.label + " (this date is a class day)";
+        scheduleInfo.style.color = "#166534";
+      }
+    }
+
+    function updateFirstScanLabel() {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) {
+        firstScanLabel.textContent = "Not set";
+        return;
+      }
+      const ms = getFirstScanTime(strand, date);
+      if (ms === null) {
+        firstScanLabel.textContent = "Not set";
+      } else {
+        firstScanLabel.textContent = new Date(ms).toLocaleTimeString();
+      }
+    }
+
+    function updateAttendanceTable() {
+      updateScheduleLabel();
+      updateFirstScanLabel();
+
+      const rows = getFilteredRecords().sort((a, b) => a.scanTimeMs - b.scanTimeMs);
+
+      attendanceTableBody.innerHTML = "";
+      let presentCount = 0;
+      let lateCount = 0;
+
+      rows.forEach((record, index) => {
+        const tr = document.createElement("tr");
+
+        const tdIndex = document.createElement("td");
+        tdIndex.textContent = index + 1;
+        tr.appendChild(tdIndex);
+
+        const tdId = document.createElement("td");
+        tdId.textContent = record.studentId;
+        tr.appendChild(tdId);
+
+        const tdFirst = document.createElement("td");
+        tdFirst.textContent = record.firstName;
+        tr.appendChild(tdFirst);
+
+        const tdLast = document.createElement("td");
+        tdLast.textContent = record.lastName;
+        tr.appendChild(tdLast);
+
+        const tdStatus = document.createElement("td");
+        tdStatus.textContent = record.status;
+        tr.appendChild(tdStatus);
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = record.scanTimeStr;
+        tr.appendChild(tdTime);
+
+        attendanceTableBody.appendChild(tr);
+
+        if (record.status === "Present") presentCount++;
+        if (record.status === "Late") lateCount++;
+      });
+
+      const uniqueCount = rows.length;
+      totalCountSpan.textContent = uniqueCount.toString();
+      presentCountSpan.textContent = presentCount.toString();
+      lateCountSpan.textContent = lateCount.toString();
+
+      const { strand, date } = getCurrentFilter();
+      const schedule = getScheduleFor(strand, date);
+      summaryStrand.textContent = strand || "";
+      summaryDate.textContent = date || "";
+      summaryTime.textContent = schedule ? schedule.label + " (+30 min grace from first scan)" : "No scheduled class (still using 30‑min grace from first scan if any)";
+      summaryUnique.textContent = uniqueCount.toString();
+      summaryPresent.textContent = presentCount.toString();
+      summaryLate.textContent = lateCount.toString();
+    }
+
+    function hasExistingRecord(studentId, strand, date) {
+      const all = loadRecords();
+      return all.some(
+        r =>
+          r.studentId.toLowerCase() === studentId.toLowerCase().trim() &&
+          r.strand === strand &&
+          r.date === date
+      );
+    }
+
+    function addRecord({ firstName, lastName, studentId }, source = "QR") {
+      const now = new Date();
+      const scanTimeStr = formatTime(now);
+      const scanTimeMs = now.getTime();
+
+      const { strand, date } = getCurrentFilter();
+      const normalizedId = (studentId || "").trim();
+      const normalizedFirst = (firstName || "").trim();
+      const normalizedLast = (lastName || "").trim();
+
+      if (!date) {
+        setStatus("Please select a date first.", "error");
+        showToast("Select date first", "error");
+        playSound(soundError);
+        return;
+      }
+
+      if (!normalizedFirst || !normalizedLast || !normalizedId) {
+        setStatus("First name, last name, and ID are required.", "error");
+        showToast("Missing data", "error");
+        playSound(soundError);
+        return;
+      }
+
+      if (hasExistingRecord(normalizedId, strand, date)) {
+        lastScanSpan.textContent = `Duplicate: ${normalizedFirst} ${normalizedLast} (${normalizedId}) at ${scanTimeStr}`;
+        setStatus(`Duplicate scan for ${normalizedFirst} ${normalizedLast} (${normalizedId}).`, "error");
+        showToast("Duplicate for this strand & date", "error");
+        playSound(soundDuplicate);
+        return;
+      }
+
+      const status = computeStatus(now);
+
+      const all = loadRecords();
+      all.push({
+        strand,
+        date,
+        studentId: normalizedId,
+        firstName: normalizedFirst,
+        lastName: normalizedLast,
+        status,
+        scanTimeStr,
+        scanTimeMs,
+        source
+      });
+      saveRecords(all);
+
+      lastScanSpan.textContent = `${normalizedFirst} ${normalizedLast} (${normalizedId}) at ${scanTimeStr} [${status}]`;
+      setStatus(
+        `Attendance recorded for ${normalizedFirst} ${normalizedLast} (${normalizedId}) as ${status}.`,
+        "success"
+      );
+      showToast(`${status}: ${normalizedFirst} ${normalizedLast}`, "success");
+      playSound(soundSuccess);
+      updateAttendanceTable();
+    }
+
+    function clearAttendanceForCurrentFilter() {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) {
+        alert("Select strand and date first.");
+        return;
+      }
+      if (!confirm(`Clear all attendance and first scan time for:\nStrand: ${strand}\nDate: ${date}?`)) return;
+
+      const all = loadRecords();
+      const remaining = all.filter(
+        r => !(r.strand === strand && r.date === date)
+      );
+      saveRecords(remaining);
+
+      // Clear first scan time for this strand+date
+      const map = loadFirstScanTimes();
+      const key = getFirstScanKey(strand, date);
+      delete map[key];
+      saveFirstScanTimes(map);
+
+      updateAttendanceTable();
+      lastScanSpan.textContent = "None";
+      setStatus("Attendance cleared for current strand/date.", "info");
+      showToast("Attendance cleared", "info");
+    }
+
+    function exportCurrentToWorkbook() {
+      const rows = getFilteredRecords().sort((a, b) => a.scanTimeMs - b.scanTimeMs);
+
+      const tableData = [
+        ["#", "Student ID", "First name", "Last name", "Status", "Scan time"],
+      ];
+      let presentCount = 0;
+      let lateCount = 0;
+
+      rows.forEach((r, index) => {
+        tableData.push([
+          index + 1,
+          r.studentId,
+          r.firstName,
+          r.lastName,
+          r.status,
+          r.scanTimeStr,
+        ]);
+        if (r.status === "Present") presentCount++;
+        if (r.status === "Late") lateCount++;
+      });
+
+      tableData.push([]);
+      tableData.push([
+        "Summary",
+        "",
+        `Unique: ${rows.length}`,
+        `Present: ${presentCount}`,
+        `Late: ${lateCount}`,
+        "",
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet(tableData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+      return wb;
+    }
+
+    function exportToExcel() {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) {
+        alert("Select strand and date first.");
+        return;
+      }
+      const wb = exportCurrentToWorkbook();
+      const filename = `attendance_${strand}_${date}.xlsx`;
+      XLSX.writeFile(wb, filename);
+    }
+
+    function exportToCsv() {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) {
+        alert("Select strand and date first.");
+        return;
+      }
+      const wb = exportCurrentToWorkbook();
+      const ws = wb.Sheets["Attendance"];
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance_${strand}_${date}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportToJson() {
+      const { strand, date } = getCurrentFilter();
+      if (!strand || !date) {
+        alert("Select strand and date first.");
+        return;
+      }
+      const rows = getFilteredRecords();
+      const jsonStr = JSON.stringify(rows, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance_${strand}_${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function initScanner() {
+      html5QrCode = new Html5Qrcode("reader");
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        cameraSelect.innerHTML = "";
+        if (devices && devices.length) {
+          devices.forEach((device, idx) => {
+            const option = document.createElement("option");
+            option.value = device.id;
+            option.textContent = device.label || `Camera ${idx + 1}`;
+            cameraSelect.appendChild(option);
+          });
+          currentCameraId = devices[0].id;
+          cameraSelect.value = currentCameraId;
+          setStatus("Cameras loaded. Click 'Start Scanner'.", "info");
+        } else {
+          setStatus("No camera devices found.", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus("Error accessing cameras. Check permissions and HTTPS.", "error");
+      }
+    }
+
+    async function startScanner() {
+      if (!html5QrCode) {
+        await initScanner();
+      }
+      if (!currentCameraId) {
+        setStatus("No camera selected.", "error");
+        return;
+      }
+      const config = { fps: 10, qrbox: 250 };
+      try {
+        await html5QrCode.start(
+          { deviceId: { exact: currentCameraId } },
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+        setStatus("Scanner running. Show a QR code to the camera.", "info");
+        showToast("Scanner started", "info");
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        setStatus("Failed to start scanner.", "error");
+        showToast("Failed to start scanner", "error");
+      }
+    }
+
+    async function stopScanner() {
+      if (html5QrCode && html5QrCode._isScanning) {
+        try {
+          await html5QrCode.stop();
+          setStatus("Scanner stopped.", "info");
+          showToast("Scanner stopped", "info");
+        } catch (err) {
+          console.error(err);
+          setStatus("Error stopping scanner.", "error");
+          showToast("Error stopping scanner", "error");
+        }
+      }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      try {
+        const record = parseQrContent(decodedText);
+        addRecord(record, "QR");
+      } catch (e) {
+        setStatus(e.message, "error");
+        showToast("QR format error", "error");
+        playSound(soundError);
+      }
+    }
+
+    function onScanFailure(errorMessage) {}
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date();
+      dateSelect.value = formatDate(today);
+
+      initScanner();
+
+      startBtn.addEventListener("click", startScanner);
+      stopBtn.addEventListener("click", stopScanner);
+      stopBtn.disabled = true;
+
+      cameraSelect.addEventListener("change", (e) => {
+        currentCameraId = e.target.value;
+        if (html5QrCode && html5QrCode._isScanning) {
+          stopScanner().then(startScanner);
+        }
+      });
+
+      strandSelect.addEventListener("change", updateAttendanceTable);
+      dateSelect.addEventListener("change", updateAttendanceTable);
+
+      exportXlsxBtn.addEventListener("click", exportToExcel);
+      exportCsvBtn.addEventListener("click", exportToCsv);
+      exportJsonBtn.addEventListener("click", exportToJson);
+      clearBtn.addEventListener("click", clearAttendanceForCurrentFilter);
+
+      manualAddBtn.addEventListener("click", () => {
+        const firstName = manualFirstInput.value;
+        const lastName = manualLastInput.value;
+        const studentId = manualIdInput.value;
+        addRecord({ firstName, lastName, studentId }, "MANUAL");
+      });
+
+      fullscreenBtn.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      updateAttendanceTable();
+    });
+  </script>
+</body>
+</html>
